@@ -14,7 +14,7 @@ cache = {}
 def remove_spaces(input_string: str) -> str:
     return input_string.replace(" ", "")
 def get_user_name():
-    url = "https://www.ivtool.com/random-name-generater/uinames/api/index.php?region=united%20states&gender=male&amount=5&="
+    url = "http://www.ivtool.com/random-name-generater/uinames/api/index.php?region=united%20states&gender=male&amount=5&="
     resp = requests.get(url, verify=False)
     if resp.status_code != 200:
         print(resp.status_code, resp.text)
