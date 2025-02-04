@@ -11,8 +11,10 @@ from requests.exceptions import JSONDecodeError
 ocr = ddddocr.DdddOcr()
 os.makedirs("static", exist_ok=True)
 cache = {}
+
 def remove_spaces(input_string: str) -> str:
     return input_string.replace(" ", "")
+
 def get_user_name():
     url = "https://www.ivtool.com/random-name-generater/uinames/api/index.php?region=united%20states&gender=male&amount=5&="
     resp = requests.get(url, verify=False)
@@ -21,13 +23,16 @@ def get_user_name():
         raise Exception("获取名字出错")
     data = resp.json()
     return data
+
 def generate_random_username():
     length = random.randint(7, 10)
     characters = string.ascii_letters
     random_string = ''.join(random.choice(characters) for _ in range(length))
     return random_string
+
 def start_task(input_email: str):
     background_task(input_email)
+
 def background_task(input_email: str):
     while True:
         try:
@@ -36,21 +41,30 @@ def background_task(input_email: str):
             Cookie = "csrftoken={}"
             url1 = "https://www.serv00.com/offer/create_new_account"
             captcha_url = "https://www.serv00.com/captcha/image/{}/"
-            header2 = {"Cookie": Cookie}
+
+            # 修改header2和header3，加入User-Agent
+            header2 = {
+                "Cookie": Cookie,
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+
             url3 = "https://www.serv00.com/offer/create_new_account.json"
             header3 = {
                 "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 "Referer": "https://www.serv00.com/offer/create_new_account",
-                "Cookie": Cookie
+                "Cookie": Cookie,
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             }
+
             _ = usernames.pop()
             first_name = _["name"]
             last_name = _["surname"]
             username = generate_random_username().lower()
             logger.info(f"{email} {first_name} {last_name} {username}")
+            
             with requests.Session() as session:
                 logger.info("获取网页信息")
-                resp = session.get(url=url1)
+                resp = session.get(url=url1, headers=header2)  # 添加了headers参数
                 if resp.status_code != 200:
                     print(resp.status_code)
                     return
@@ -66,7 +80,7 @@ def background_task(input_email: str):
                     logger.info("获取验证码")
                     capt = {}
                     resp = session.get(url=captcha_url.format(captcha_0),
-                                    headers=dict(header2, **{"Cookie": header2["Cookie"].format(csrftoken)}))
+                                    headers=dict(header2, **{"Cookie": header2["Cookie"].format(csrftoken)}))  # 添加了headers参数
                     content = resp.content
                     with open("static/image.jpg", "wb") as f:
                         f.write(content)
@@ -76,7 +90,7 @@ def background_task(input_email: str):
                     else:
                         logger.warning("\033[4m验证码识别失败,正在重试...\033[0m")
                         retry += 1
-                        if retry > 20: # 此处修改重试次数，默认20次.
+                        if retry > 20:  # 此处修改重试次数，默认20次.
                             print("验证码识别失败次数过多,退出重试.")
                             return
                         continue
@@ -84,7 +98,7 @@ def background_task(input_email: str):
                     data = f"csrfmiddlewaretoken={csrftoken}&first_name={first_name}&last_name={last_name}&username={username}&email={quote(email)}&captcha_0={captcha_0}&captcha_1={captcha_1}&question=0&tos=on"
                     time.sleep(random.uniform(0.5, 1.2))
                     logger.info("请求信息")
-                    resp = session.post(url=url3, headers=dict(header3, **{"Cookie": header3["Cookie"].format(csrftoken)}), data=data)
+                    resp = session.post(url=url3, headers=dict(header3, **{"Cookie": header3["Cookie"].format(csrftoken)}), data=data)  # 添加了headers参数
                     logger.info(f'请求状态码: {resp.status_code}')
                     print(resp.text)
                     try:
@@ -105,7 +119,7 @@ def background_task(input_email: str):
                         break
                     if content.get("email") and content["email"][0] == "Enter a valid email address.":
                         logger.error("\033[7m无效的邮箱,请重新输入.\033[0m")
-                        time.sleep(random.uniform(0.5, 1.2))
+                        time.sleep(random.uniform(0.1, 1.2))
                         return
                     else:
                         return
@@ -114,6 +128,7 @@ def background_task(input_email: str):
             time.sleep(random.uniform(0.5, 1.2))
         if input_email in cache:
             del cache[input_email]
+
 if __name__ == "__main__":
     os.system("cls" if os.name == "nt" else "clear")
     response = requests.get('https://ping0.cc/geo')
